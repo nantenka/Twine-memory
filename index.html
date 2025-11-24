@@ -70,7 +70,6 @@
     box-shadow: 0 6px 18px rgba(2,6,23,0.6);
   }
   .flipped .inner{transform: rotateY(180deg) translateZ(0)}
-
   .face{
     position:absolute;inset:0;border-radius:10px;display:flex;align-items:center;justify-content:center;backface-visibility:hidden;user-select:none;
     overflow:hidden;
@@ -105,15 +104,12 @@
     .board.size-6{grid-template-columns:repeat(6, minmax(40px,1fr));}
     .inner{border-radius:8px}
   }
-
   .overlay{
-    position:fixed;inset:0;display:flex;align-items:center;justify-content:center;background:linear-gradient(0deg, rgba(2,6,23,0.6), rgba(2,6,23,0.6));
+    position:fixed;inset:0;display:flex;align-items:center;justify-content:center;background:rgba(2,6,23,0.6);
     visibility:hidden;opacity:0;transition:opacity .2s, visibility .2s;z-index:999;
   }
   .overlay.show{visibility:visible;opacity:1}
   .modal{background:#071129;padding:22px;border-radius:12px;border:1px solid rgba(255,255,255,0.04);max-width:420px;text-align:center}
-  .modal h2{margin:0 0 8px 0}
-  .modal p{color:var(--muted);margin:0 0 16px 0}
 </style>
 </head>
 <body>
@@ -126,7 +122,7 @@
     <div class="controls">
       <div class="meta">Moves: <strong id="moves">0</strong></div>
       <div class="meta">Time: <strong id="time">0s</strong></div>
-      <select id="modeSelect" title="Select mode">
+      <select id="modeSelect">
         <option value="4">Easy (4×4)</option>
         <option value="5">Medium (5×4)</option>
         <option value="6">Hard (6×4)</option>
@@ -134,11 +130,9 @@
       <button id="restart">Restart</button>
     </div>
   </header>
-
   <main>
-    <div id="board" class="board size-4" aria-live="polite"></div>
+    <div id="board" class="board size-4"></div>
   </main>
-
   <div class="footer">
     <div class="meta">Pairs found: <strong id="found">0</strong>/<strong id="total">0</strong></div>
     <div class="meta">Best: <span id="best">—</span></div>
@@ -149,122 +143,120 @@
   <div class="modal">
     <h2 id="resultTitle">You did it!</h2>
     <p id="resultText">Time - 12s · Moves - 18</p>
-    <div style="display:flex;gap:8px;justify-content:center;margin-top:12px">
-      <button id="playAgain">Play again</button>
-      <button id="closeModal">Close</button>
-    </div>
+    <button id="playAgain">Play again</button>
+    <button id="closeModal">Close</button>
   </div>
 </div>
 
 <script>
 (function(){
   const imageFiles = [
-    "-2147483648_-230572.jpg","-2147483648_-230574.jpg","-2147483648_-230578.jpg",
-    "-2147483648_-230582.jpg","-2147483648_-230584.jpg","-2147483648_-230586.jpg",
-    "-2147483648_-230588.jpg","-2147483648_-230590.jpg","-2147483648_-230592.jpg",
-    "-2147483648_-230594.jpg","-2147483648_-230596.jpg","-2147483648_-230602.jpg",
-    "-2147483648_-230604.jpg","-2147483648_-230610.jpg","-2147483648_-230612.jpg",
-    "-2147483648_-230614.jpg","-2147483648_-230628.jpg","-2147483648_-230632.jpg",
-    "-2147483648_-230634.jpg","-2147483648_-230636.jpg","-2147483648_-230638.jpg",
-    "-2147483648_-230640.jpg","-2147483648_-230642.jpg","-2147483648_-230644.jpg",
-    "-2147483648_-230646.jpg","-2147483648_-230648.jpg","-2147483648_-230650.jpg",
-    "-2147483648_-230652.jpg","-2147483648_-230654.jpg","-2147483648_-230656.jpg",
-    "-2147483648_-230658.jpg"
+    "-2147483648_-230892.jpg","-2147483648_-230894.jpg","-2147483648_-230896.jpg","-2147483648_-230898.jpg",
+    "-2147483648_-230900.jpg","-2147483648_-230902.jpg","-2147483648_-230904.jpg","-2147483648_-230906.jpg",
+    "-2147483648_-230908.jpg","-2147483648_-230912.jpg","-2147483648_-230918.jpg","-2147483648_-230920.jpg",
+    "-2147483648_-230922.jpg","-2147483648_-230924.jpg","-2147483648_-230928.jpg","-2147483648_-230930.jpg",
+    "-2147483648_-230932.jpg","-2147483648_-230940.jpg","-2147483648_-230942.jpg","-2147483648_-230944.jpg",
+    "-2147483648_-230946.jpg","-2147483648_-230948.jpg","-2147483648_-230950.jpg","-2147483648_-230952.jpg",
+    "-2147483648_-230954.jpg","-2147483648_-230960.jpg","-2147483648_-230964.jpg","-2147483648_-230966.jpg",
+    "-2147483648_-230968.jpg","-2147483648_-230970.jpg","idryZJkp_400x400.jpg","-2147483648_-230972.jpg"
   ];
 
-  const boardEl = document.getElementById('board');
-  const movesEl = document.getElementById('moves');
-  const timeEl = document.getElementById('time');
-  const foundEl = document.getElementById('found');
-  const totalEl = document.getElementById('total');
-  const bestEl = document.getElementById('best');
-  const overlay = document.getElementById('overlay');
-  const resultText = document.getElementById('resultText');
-  const resultTitle = document.getElementById('resultTitle');
+  const boardEl=document.getElementById('board');
+  const movesEl=document.getElementById('moves');
+  const timeEl=document.getElementById('time');
+  const foundEl=document.getElementById('found');
+  const totalEl=document.getElementById('total');
+  const bestEl=document.getElementById('best');
+  const overlay=document.getElementById('overlay');
+  const resultText=document.getElementById('resultText');
+  const resultTitle=document.getElementById('resultTitle');
+  const restartBtn=document.getElementById('restart');
+  const modeSelect=document.getElementById('modeSelect');
+  const playAgain=document.getElementById('playAgain');
+  const closeModal=document.getElementById('closeModal');
 
-  const restartBtn = document.getElementById('restart');
-  const modeSelect = document.getElementById('modeSelect');
-  const playAgain = document.getElementById('playAgain');
-  const closeModal = document.getElementById('closeModal');
+  let cols=Number(modeSelect.value);
+  let cards=[],firstCard=null,secondCard=null,lock=false;
+  let moves=0,found=0,totalPairs=0;
+  let timer=null,seconds=0;
 
-  let cols = Number(modeSelect.value);
-  let cards=[], firstCard=null, secondCard=null, lock=false;
-  let moves=0, found=0, totalPairs=0;
-  let timer=null, seconds=0;
-
-  function startTimer(){if(timer) clearInterval(timer); seconds=0; timeEl.textContent='0s'; timer=setInterval(()=>{seconds++; timeEl.textContent=seconds+'s';},1000);}
+  function startTimer(){if(timer) clearInterval(timer); seconds=0; timeEl.textContent='0s'; timer=setInterval(()=>{seconds++;timeEl.textContent=seconds+'s';},1000);}
   function stopTimer(){if(timer) clearInterval(timer); timer=null;}
-  function shuffle(array){return array.sort(()=>Math.random()-0.5);}
-  function buildDeck(cols){const count=cols*4; const pairCount=Math.floor(count/2); totalPairs=pairCount; const selected=shuffle(imageFiles.slice()).slice(0,pairCount); return shuffle(selected.concat(selected));}
+
+  function shuffle(arr){return arr.sort(()=>Math.random()-0.5);}
+
+  function buildDeck(cols){
+    const count=cols*4;
+    const pairCount=Math.floor(count/2);
+    totalPairs=pairCount;
+    const selected=shuffle(imageFiles.slice()).slice(0,pairCount);
+    return shuffle(selected.concat(selected));
+  }
 
   function renderBoard(cols){
-    boardEl.className='board size-'+cols; boardEl.innerHTML='';
-    const deck = buildDeck(cols);
+    boardEl.className='board size-'+cols;
+    boardEl.innerHTML='';
+    const deck=buildDeck(cols);
 
-    cards = deck.map((file,i)=>{
-      const el = document.createElement('div');
+    cards=deck.map((file,i)=>{
+      const el=document.createElement('div');
       el.className='card';
-      el.dataset.index=i;
       el.dataset.value=file;
-      el.innerHTML = `
-        <div class="inner">
-          <div class="face front"></div>
-          <div class="face back"><img src="images/${file}" /></div>
-        </div>
-      `;
+      el.innerHTML=`<div class="inner"><div class="face front"></div><div class="face back"><img src="images/${file}"></div></div>`;
       boardEl.appendChild(el);
-      el.addEventListener('click', onCardClick);
+      el.addEventListener('click',onCardClick);
       return el;
     });
 
-    moves=0; found=0; movesEl.textContent=moves; foundEl.textContent=found; totalEl.textContent=totalPairs;
-    firstCard=null; secondCard=null; lock=false;
+    moves=0;found=0;
+    movesEl.textContent=moves;
+    foundEl.textContent=found;
+    totalEl.textContent=totalPairs;
 
-    // short preview
+    firstCard=null;secondCard=null;lock=false;
     cards.forEach(c=>c.classList.add('flipped'));
     setTimeout(()=>cards.forEach(c=>c.classList.remove('flipped')),800);
-    stopTimer(); timeEl.textContent='0s';
-
-    const b = loadBest(cols);
-    bestEl.textContent = b ? `${b.moves} moves · ${b.time}s` : '—';
+    stopTimer();
   }
 
   function onCardClick(e){
-    const card = e.currentTarget;
-    if(lock || card.classList.contains('matched') || card===firstCard) return;
+    const card=e.currentTarget;
+    if(lock||card.classList.contains('matched')||card===firstCard) return;
     if(!timer) startTimer();
-    card.classList.add('flipped');
 
-    if(!firstCard){firstCard=card; return;}
-    secondCard=card; moves++; movesEl.textContent=moves; lock=true;
+    card.classList.add('flipped');
+    if(!firstCard){firstCard=card;return;}
+    secondCard=card;
+    moves++;movesEl.textContent=moves;
+    lock=true;
 
     if(firstCard.dataset.value===secondCard.dataset.value){
       setTimeout(()=>{
-        firstCard.classList.add('matched'); secondCard.classList.add('matched');
-        firstCard=null; secondCard=null; lock=false; found++; foundEl.textContent=found;
-        if(found===totalPairs){stopTimer(); showWin();}
+        firstCard.classList.add('matched');
+        secondCard.classList.add('matched');
+        firstCard=null;secondCard=null;lock=false;
+        found++;foundEl.textContent=found;
+        if(found===totalPairs){stopTimer();showWin();}
       },360);
-    }else{
-      setTimeout(()=>{firstCard.classList.remove('flipped'); secondCard.classList.remove('flipped'); firstCard=null; secondCard=null; lock=false;},700);
+    } else {
+      setTimeout(()=>{
+        firstCard.classList.remove('flipped');
+        secondCard.classList.remove('flipped');
+        firstCard=null;secondCard=null;lock=false;
+      },700);
     }
   }
 
   function showWin(){
-    saveBest(cols,seconds,moves); const b=loadBest(cols);
-    if(b) bestEl.textContent = `${b.moves} moves · ${b.time}s`;
     resultTitle.textContent='Level complete 🎉';
-    resultText.textContent = `Time — ${seconds}s · Moves — ${moves}`;
+    resultText.textContent=`Time — ${seconds}s · Moves — ${moves}`;
     overlay.classList.add('show');
   }
 
-  function getBestKey(cols){return `memory_best_${cols}x4`;}
-  function saveBest(cols,time,moves){const key=getBestKey(cols); const prev=localStorage.getItem(key); const value=JSON.stringify({time,moves}); if(!prev){localStorage.setItem(key,value);return;} try{const p=JSON.parse(prev); if(moves<p.moves||(moves===p.moves&&time<p.time)) localStorage.setItem(key,value);}catch(e){localStorage.setItem(key,value);}}
-  function loadBest(cols){const key=getBestKey(cols); const prev=localStorage.getItem(key); if(!prev)return null; try{return JSON.parse(prev);}catch(e){return null;}}
-
-  restartBtn.addEventListener('click',()=>renderBoard(cols));
-  modeSelect.addEventListener('change',(e)=>{cols=Number(modeSelect.value); renderBoard(cols);});
-  playAgain.addEventListener('click',()=>{overlay.classList.remove('show'); renderBoard(cols);});
-  closeModal.addEventListener('click',()=>{overlay.classList.remove('show');});
+  restartBtn.onclick=()=>renderBoard(cols);
+  modeSelect.onchange=()=>{cols=Number(modeSelect.value);renderBoard(cols);}
+  playAgain.onclick=()=>{overlay.classList.remove('show');renderBoard(cols);}
+  closeModal.onclick=()=>overlay.classList.remove('show');
 
   renderBoard(cols);
 })();
