@@ -1,0 +1,273 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width,initial-scale=1" />
+<title>Memory - Mini Game</title>
+<style>
+  :root{
+    --bg: #0f1724;
+    --card: #e6eef8;
+    --accent: #ffd166;
+    --muted: #94a3b8;
+  }
+  html,body{height:100%;}
+  body{
+    margin:0;
+    font-family: Inter, ui-sans-serif, system-ui, -apple-system, "Segoe UI", Roboto, "Helvetica Neue", Arial;
+    background: linear-gradient(180deg,#071022 0%, #102238 100%);
+    color: #e6eef8;
+    display:flex;
+    align-items:center;
+    justify-content:center;
+    padding:24px;
+    box-sizing:border-box;
+  }
+
+  .wrap{
+    width:100%;
+    max-width:760px;
+    background: linear-gradient(180deg, rgba(255,255,255,0.03), rgba(255,255,255,0.01));
+    border: 1px solid rgba(255,255,255,0.04);
+    padding:20px;
+    border-radius:14px;
+    box-shadow: 0 8px 30px rgba(3,7,18,0.6);
+  }
+
+  header{
+    display:flex;
+    gap:16px;
+    align-items:center;
+    margin-bottom:14px;
+  }
+  h1{font-size:20px;margin:0}
+  .controls{margin-left:auto;display:flex;gap:8px;align-items:center}
+  button{background:transparent;border:1px solid rgba(230,238,248,0.06);color:var(--accent);padding:6px 10px;border-radius:8px;cursor:pointer}
+  .meta{display:flex;gap:12px;align-items:center;color:var(--muted);font-size:13px}
+
+  .board{
+    display:grid;
+    gap:12px;
+    padding:12px;
+    justify-items:center;
+  }
+  .board.size-4{grid-template-columns:repeat(4, minmax(60px,1fr));}
+  .board.size-5{grid-template-columns:repeat(5, minmax(60px,1fr));}
+  .board.size-6{grid-template-columns:repeat(6, minmax(50px,1fr));}
+
+  .card{
+    width:100%;
+    aspect-ratio: 1/1;
+    perspective: 900px;
+    cursor:pointer;
+  }
+  .inner{
+    position:relative;
+    width:100%;height:100%;
+    transform-style:preserve-3d;
+    transition: transform 380ms cubic-bezier(.25,.8,.25,1);
+    border-radius:10px;
+    box-shadow: 0 6px 18px rgba(2,6,23,0.6);
+  }
+  .flipped .inner{transform: rotateY(180deg) translateZ(0)}
+
+  .face{
+    position:absolute;inset:0;border-radius:10px;display:flex;align-items:center;justify-content:center;backface-visibility:hidden;user-select:none;
+    overflow:hidden;
+  }
+  .face.front{
+    background:linear-gradient(180deg,#0b1220,#0e1a2d);
+    border:1px solid rgba(255,255,255,0.03);
+  }
+  .face.back{
+    background:#fff;
+    transform:rotateY(180deg);
+    display:flex;
+    align-items:center;
+    justify-content:center;
+  }
+  .face.back img{
+    width:100%;
+    height:100%;
+    object-fit:cover;
+    border-radius:10px;
+  }
+
+  .matched .inner{animation:pop 420ms ease-out}
+  @keyframes pop{0%{transform:scale(1) rotateY(180deg)}50%{transform:scale(1.06) rotateY(180deg)}100%{transform:scale(1) rotateY(180deg)}}
+
+  .footer{display:flex;align-items:center;justify-content:space-between;margin-top:14px;color:var(--muted);font-size:13px}
+  .hint{font-size:12px;color:var(--muted)}
+
+  @media (max-width:520px){
+    .board.size-4{grid-template-columns:repeat(4, minmax(50px,1fr));}
+    .board.size-5{grid-template-columns:repeat(5, minmax(50px,1fr));}
+    .board.size-6{grid-template-columns:repeat(6, minmax(40px,1fr));}
+    .inner{border-radius:8px}
+  }
+
+  .overlay{
+    position:fixed;inset:0;display:flex;align-items:center;justify-content:center;background:linear-gradient(0deg, rgba(2,6,23,0.6), rgba(2,6,23,0.6));
+    visibility:hidden;opacity:0;transition:opacity .2s, visibility .2s;z-index:999;
+  }
+  .overlay.show{visibility:visible;opacity:1}
+  .modal{background:#071129;padding:22px;border-radius:12px;border:1px solid rgba(255,255,255,0.04);max-width:420px;text-align:center}
+  .modal h2{margin:0 0 8px 0}
+  .modal p{color:var(--muted);margin:0 0 16px 0}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <header>
+    <div>
+      <h1>Memory - match the pairs</h1>
+      <div class="hint">Tap cards to flip - match all pairs to win ✨</div>
+    </div>
+    <div class="controls">
+      <div class="meta">Moves: <strong id="moves">0</strong></div>
+      <div class="meta">Time: <strong id="time">0s</strong></div>
+      <select id="modeSelect" title="Select mode">
+        <option value="4">Easy (4×4)</option>
+        <option value="5">Medium (5×4)</option>
+        <option value="6">Hard (6×4)</option>
+      </select>
+      <button id="restart">Restart</button>
+    </div>
+  </header>
+
+  <main>
+    <div id="board" class="board size-4" aria-live="polite"></div>
+  </main>
+
+  <div class="footer">
+    <div class="meta">Pairs found: <strong id="found">0</strong>/<strong id="total">0</strong></div>
+    <div class="meta">Best: <span id="best">—</span></div>
+  </div>
+</div>
+
+<div class="overlay" id="overlay">
+  <div class="modal">
+    <h2 id="resultTitle">You did it!</h2>
+    <p id="resultText">Time - 12s · Moves - 18</p>
+    <div style="display:flex;gap:8px;justify-content:center;margin-top:12px">
+      <button id="playAgain">Play again</button>
+      <button id="closeModal">Close</button>
+    </div>
+  </div>
+</div>
+
+<script>
+(function(){
+  const imageFiles = [
+    "-2147483648_-230572.jpg","-2147483648_-230574.jpg","-2147483648_-230578.jpg",
+    "-2147483648_-230582.jpg","-2147483648_-230584.jpg","-2147483648_-230586.jpg",
+    "-2147483648_-230588.jpg","-2147483648_-230590.jpg","-2147483648_-230592.jpg",
+    "-2147483648_-230594.jpg","-2147483648_-230596.jpg","-2147483648_-230602.jpg",
+    "-2147483648_-230604.jpg","-2147483648_-230610.jpg","-2147483648_-230612.jpg",
+    "-2147483648_-230614.jpg","-2147483648_-230628.jpg","-2147483648_-230632.jpg",
+    "-2147483648_-230634.jpg","-2147483648_-230636.jpg","-2147483648_-230638.jpg",
+    "-2147483648_-230640.jpg","-2147483648_-230642.jpg","-2147483648_-230644.jpg",
+    "-2147483648_-230646.jpg","-2147483648_-230648.jpg","-2147483648_-230650.jpg",
+    "-2147483648_-230652.jpg","-2147483648_-230654.jpg","-2147483648_-230656.jpg",
+    "-2147483648_-230658.jpg"
+  ];
+
+  const boardEl = document.getElementById('board');
+  const movesEl = document.getElementById('moves');
+  const timeEl = document.getElementById('time');
+  const foundEl = document.getElementById('found');
+  const totalEl = document.getElementById('total');
+  const bestEl = document.getElementById('best');
+  const overlay = document.getElementById('overlay');
+  const resultText = document.getElementById('resultText');
+  const resultTitle = document.getElementById('resultTitle');
+
+  const restartBtn = document.getElementById('restart');
+  const modeSelect = document.getElementById('modeSelect');
+  const playAgain = document.getElementById('playAgain');
+  const closeModal = document.getElementById('closeModal');
+
+  let cols = Number(modeSelect.value);
+  let cards=[], firstCard=null, secondCard=null, lock=false;
+  let moves=0, found=0, totalPairs=0;
+  let timer=null, seconds=0;
+
+  function startTimer(){if(timer) clearInterval(timer); seconds=0; timeEl.textContent='0s'; timer=setInterval(()=>{seconds++; timeEl.textContent=seconds+'s';},1000);}
+  function stopTimer(){if(timer) clearInterval(timer); timer=null;}
+  function shuffle(array){return array.sort(()=>Math.random()-0.5);}
+  function buildDeck(cols){const count=cols*4; const pairCount=Math.floor(count/2); totalPairs=pairCount; const selected=shuffle(imageFiles.slice()).slice(0,pairCount); return shuffle(selected.concat(selected));}
+
+  function renderBoard(cols){
+    boardEl.className='board size-'+cols; boardEl.innerHTML='';
+    const deck = buildDeck(cols);
+
+    cards = deck.map((file,i)=>{
+      const el = document.createElement('div');
+      el.className='card';
+      el.dataset.index=i;
+      el.dataset.value=file;
+      el.innerHTML = `
+        <div class="inner">
+          <div class="face front"></div>
+          <div class="face back"><img src="images/${file}" /></div>
+        </div>
+      `;
+      boardEl.appendChild(el);
+      el.addEventListener('click', onCardClick);
+      return el;
+    });
+
+    moves=0; found=0; movesEl.textContent=moves; foundEl.textContent=found; totalEl.textContent=totalPairs;
+    firstCard=null; secondCard=null; lock=false;
+
+    // short preview
+    cards.forEach(c=>c.classList.add('flipped'));
+    setTimeout(()=>cards.forEach(c=>c.classList.remove('flipped')),800);
+    stopTimer(); timeEl.textContent='0s';
+
+    const b = loadBest(cols);
+    bestEl.textContent = b ? `${b.moves} moves · ${b.time}s` : '—';
+  }
+
+  function onCardClick(e){
+    const card = e.currentTarget;
+    if(lock || card.classList.contains('matched') || card===firstCard) return;
+    if(!timer) startTimer();
+    card.classList.add('flipped');
+
+    if(!firstCard){firstCard=card; return;}
+    secondCard=card; moves++; movesEl.textContent=moves; lock=true;
+
+    if(firstCard.dataset.value===secondCard.dataset.value){
+      setTimeout(()=>{
+        firstCard.classList.add('matched'); secondCard.classList.add('matched');
+        firstCard=null; secondCard=null; lock=false; found++; foundEl.textContent=found;
+        if(found===totalPairs){stopTimer(); showWin();}
+      },360);
+    }else{
+      setTimeout(()=>{firstCard.classList.remove('flipped'); secondCard.classList.remove('flipped'); firstCard=null; secondCard=null; lock=false;},700);
+    }
+  }
+
+  function showWin(){
+    saveBest(cols,seconds,moves); const b=loadBest(cols);
+    if(b) bestEl.textContent = `${b.moves} moves · ${b.time}s`;
+    resultTitle.textContent='Level complete 🎉';
+    resultText.textContent = `Time — ${seconds}s · Moves — ${moves}`;
+    overlay.classList.add('show');
+  }
+
+  function getBestKey(cols){return `memory_best_${cols}x4`;}
+  function saveBest(cols,time,moves){const key=getBestKey(cols); const prev=localStorage.getItem(key); const value=JSON.stringify({time,moves}); if(!prev){localStorage.setItem(key,value);return;} try{const p=JSON.parse(prev); if(moves<p.moves||(moves===p.moves&&time<p.time)) localStorage.setItem(key,value);}catch(e){localStorage.setItem(key,value);}}
+  function loadBest(cols){const key=getBestKey(cols); const prev=localStorage.getItem(key); if(!prev)return null; try{return JSON.parse(prev);}catch(e){return null;}}
+
+  restartBtn.addEventListener('click',()=>renderBoard(cols));
+  modeSelect.addEventListener('change',(e)=>{cols=Number(modeSelect.value); renderBoard(cols);});
+  playAgain.addEventListener('click',()=>{overlay.classList.remove('show'); renderBoard(cols);});
+  closeModal.addEventListener('click',()=>{overlay.classList.remove('show');});
+
+  renderBoard(cols);
+})();
+</script>
+</body>
+</html>
